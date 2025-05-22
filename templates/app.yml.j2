@@ -1,0 +1,9 @@
+---
+message_queue_url: "{{ pulsar_amqp_url }}"
+conda_auto_init: true
+conda_auto_install: true
+
+managers:
+  _default_:
+    type: queued_python
+    num_concurrent_jobs: 1

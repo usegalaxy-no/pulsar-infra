@@ -1,0 +1,13 @@
+[Unit]
+Description=Pulsar Job Execution Service
+After=network.target
+
+[Service]
+User={{ pulsar_user }}
+Group={{ pulsar_group }}
+WorkingDirectory={{ pulsar_install_dir }}
+ExecStart={{ venv_path }}/bin/pulsar{% if mq %} --mode webless{% endif %}
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
