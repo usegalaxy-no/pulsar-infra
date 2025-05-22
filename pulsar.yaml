@@ -3,15 +3,22 @@
   hosts: pulsar_nodes
   become: true
   vars:
+    # Pulsar system user and group
     pulsar_user: pulsar
     pulsar_group: pulsar
+    # Installation directory for Pulsar
     pulsar_install_dir: /opt/pulsar
+    # Path to Python virtual environment
     venv_path: "{{ pulsar_install_dir }}/venv"
+    # Whether to install Pulsar with web components
     install_web_components: true # Set to false if you don't need web mode initially
+    # Enable message queue support
     mq: true # Set to true if message queue support is required
+    # AMQP URL for message queue (from Ansible Vault)
     pulsar_amqp_url: "{{ vault_pulsar_mq }}"
 
   tasks:
+    # Ensure Python and pip are installed (using DNF)
     - name: Ensure required packages are installed for Python and venv (DNF)
       dnf:
         name:
@@ -20,12 +27,14 @@
         state: present
         update_cache: true
 
+    # Create Pulsar group
     - name: Create Pulsar user and group
       group:
         name: "{{ pulsar_group }}"
         state: present
       register: pulsar_group_result
 
+    # Create Pulsar user (only if group was changed/created)
     - name: Create Pulsar user
       user:
         name: "{{ pulsar_user }}"
@@ -35,6 +44,7 @@
         state: present
       when: pulsar_group_result.changed
 
+    # Create installation directory for Pulsar
     - name: Create Pulsar install directory
       file:
         path: "{{ pulsar_install_dir }}"
@@ -43,6 +53,7 @@
         group: "{{ pulsar_group }}"
         mode: '0755'
 
+    # Create Python virtual environment for Pulsar
     - name: Create Python virtual environment
       command:
         cmd: "python3 -m venv {{ venv_path }}"
@@ -52,12 +63,14 @@
       register: create_venv_result
       ignore_errors: yes # Allow if venv already exists
 
+    # Install Pulsar (with or without web components)
     - name: Install Pulsar
       pip:
         name: "pulsar-app{{ '[web]' if install_web_components else '' }}"
         virtualenv: "{{ venv_path }}"
       become_user: "{{ pulsar_user }}"
 
+    # Install kombu if message queue is enabled
     - name: Install kombu if mq is true
       pip:
         name: kombu
@@ -65,6 +78,7 @@
       become_user: "{{ pulsar_user }}"
       when: mq
 
+    # Install pycurl if message queue is enabled
     - name: Install pycurl if mq is true
       pip:
         name: pycurl
@@ -72,6 +86,7 @@
       become_user: "{{ pulsar_user }}"
       when: mq
 
+    # Generate Pulsar configuration files (only if venv was just created or config doesn't exist)
     - name: Create Pulsar configuration files
       command:
         cmd: "{{ venv_path }}/bin/pulsar-config --mq"
@@ -80,6 +95,7 @@
         chdir: "{{ pulsar_install_dir }}"
       when: create_venv_result.changed or not (lookup('file', '{{ pulsar_install_dir }}/server.ini') | length > 0) # Run if venv just created or config doesn't exist
 
+    # Create log directory for Pulsar
     - name: Create Pulsar log directory
       file:
         path: /var/log/pulsar
@@ -88,6 +104,7 @@
         group: "{{ pulsar_group }}"
         mode: '0755'
 
+    # Deploy server.ini configuration from template
     - name: Copy default Pulsar configuration
       template:
         src: server.ini.j2
@@ -96,6 +113,7 @@
         group: "{{ pulsar_group }}"
         mode: '0644'
 
+    # Deploy app.yml configuration from template
     - name: Copy default Pulsar app configuration
       template:
         src: app.yml.j2
@@ -104,7 +122,7 @@
         group: "{{ pulsar_group }}"
         mode: '0644'
 
-
+    # Deploy systemd service file for Pulsar
     - name: Create Pulsar service file
       template:
         src: pulsar.service.j2
@@ -115,6 +133,7 @@
       notify:
         - Restart Pulsar
 
+    # Enable and start Pulsar service
     - name: Enable Pulsar service
       systemd:
         name: pulsar
@@ -122,6 +141,7 @@
         state: started
 
   handlers:
+    # Handler to restart Pulsar service when configuration changes
     - name: Restart Pulsar
       systemd:
         name: pulsar
