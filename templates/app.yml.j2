@@ -1,5 +1,6 @@
 ---
-message_queue_url: "{{ pulsar_amqp_url }}"
+# AMQP URL for message queue (from Ansible Vault)
+message_queue_url: "{{ vault_pulsar_mq }}"
 conda_auto_init: false
 conda_auto_install: false
 

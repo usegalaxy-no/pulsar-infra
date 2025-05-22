@@ -2,6 +2,7 @@
 - name: Install Pulsar
   hosts: pulsar_nodes
   become: true
+  vars_files: vault_staging.yml
   vars:
     # Pulsar system user and group
     pulsar_user: pulsar
@@ -14,8 +15,6 @@
     install_web_components: true # Set to false if you don't need web mode initially
     # Enable message queue support
     mq: true # Set to true if message queue support is required
-    # AMQP URL for message queue (from Ansible Vault)
-    pulsar_amqp_url: "{{ vault_pulsar_mq }}"
 
   tasks:
     # Ensure Python and pip are installed (using DNF)
@@ -89,11 +88,12 @@
     # Generate Pulsar configuration files (only if venv was just created or config doesn't exist)
     - name: Create Pulsar configuration files
       command:
-        cmd: "{{ venv_path }}/bin/pulsar-config --mq"
+       cmd: "{{ venv_path }}/bin/pulsar-config --mq"
       become_user: "{{ pulsar_user }}"
       args:
         chdir: "{{ pulsar_install_dir }}"
-      when: create_venv_result.changed or not (lookup('file', '{{ pulsar_install_dir }}/server.ini') | length > 0) # Run if venv just created or config doesn't exist
+      when: create_venv_result.changed or not (lookup('file', '{{ pulsar_install_dir }}/server.ini') | length > 0)
+      ignore_errors: yes  # If the file is already in place, continue
 
     # Create log directory for Pulsar
     - name: Create Pulsar log directory

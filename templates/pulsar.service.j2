@@ -6,7 +6,8 @@ After=network.target
 User={{ pulsar_user }}
 Group={{ pulsar_group }}
 WorkingDirectory={{ pulsar_install_dir }}
-ExecStart={{ venv_path }}/bin/pulsar{% if mq %} --mode webless{% endif %}
+# Activate the venv before running Pulsar
+ExecStart=/bin/bash -c 'source {{ venv_path }}/bin/activate && exec pulsar{% if mq %} --mode webless{% endif %}'
 Restart=on-failure
 
 [Install]
