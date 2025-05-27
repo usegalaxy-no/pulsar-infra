@@ -1,3 +1,4 @@
 ---
 ansible_host: 158.39.77.144
 ansible_user: almalinux
+vault_environment: staging
