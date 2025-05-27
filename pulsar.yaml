@@ -2,7 +2,7 @@
 - name: Install Pulsar
   hosts: pulsar_nodes
   become: true
-  vars_files: vault_staging.yaml
+  vars_files: "vault_{{ vault_environment }}.yaml"
   vars:
     # Pulsar system user and group
     pulsar_user: pulsar
