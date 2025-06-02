@@ -13,6 +13,12 @@ This repository contains an Ansible playbook to automate the installation and co
 - Sets up log directories.
 - Deploys configuration templates (`server.ini`, `app.yml`).
 - Installs and enables a systemd service for Pulsar.
+- Configures Slurm DRMAA for job execution.
+
+## Requirements
+
+- **Pulsar and Slurm must be installed on the same node.**
+- This Pulsar setup is designed to use Slurm as the job runner.
 
 ## How to Run
 
@@ -45,6 +51,7 @@ This repository contains an Ansible playbook to automate the installation and co
 - Configuration files will be generated and placed in the install directory.
 - A systemd service (`pulsar.service`) will be created and started.
 - If enabled, message queue support will be configured using the provided AMQP URL.
+- Slurm DRMAA will be installed and configured for job execution.
 
 ## Customization
 
@@ -53,6 +60,7 @@ You can adjust variables in `pulsar.yaml` to control:
 - Whether to install web components (`install_web_components`)
 - Whether to enable message queue support (`mq`)
 - Installation paths and user/group names
+- Slurm DRMAA version and configuration
 
 ## Templates
 
