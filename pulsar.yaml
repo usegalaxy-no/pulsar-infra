@@ -17,6 +17,9 @@
     mq: true # Set to true if message queue support is required
     # AMQP URL for message queue (from Ansible Vault)
     pulsar_amqp_url: "{{ vault_pulsar_mq }}"
+    drmaa: true # Set to true if DRMAA support is required
+    slurm_drmaa_version: "1.1.5"
+    slurm_drmaa_url: "https://github.com/natefoo/slurm-drmaa/releases/download/{{ slurm_drmaa_version }}/slurm-drmaa-{{ slurm_drmaa_version }}.tar.gz"
 
   tasks:
     # Ensure Python and pip are installed (using DNF)
@@ -87,6 +90,48 @@
       become_user: "{{ pulsar_user }}"
       when: mq
 
+    # Install drmaa if drmaa is enabled
+    - name: Install drmaa if drmaa is true
+      pip:
+        name: drmaa
+        virtualenv: "{{ venv_path }}"
+      become_user: "{{ pulsar_user }}"
+      when: drmaa
+
+    # Install dependencies for slurm-drmaa if drmaa is enabled
+    - name: Install dependencies for slurm-drmaa
+      dnf:
+        name:
+          - gcc
+          - make
+          - slurm
+          - slurm-devel
+        state: present
+      when: drmaa
+
+    # Download slurm-drmaa release tarball if drmaa is enabled
+    - name: Download slurm-drmaa release
+      get_url:
+        url: "{{ slurm_drmaa_url }}"
+        dest: /tmp/slurm-drmaa.tar.gz
+      when: drmaa
+
+    # Extract slurm-drmaa tarball if drmaa is enabled
+    - name: Extract slurm-drmaa tarball
+      unarchive:
+        src: /tmp/slurm-drmaa.tar.gz
+        dest: /tmp/
+        remote_src: yes
+      when: drmaa
+
+    # Build and install slurm-drmaa from extracted source if drmaa is enabled
+    - name: Build and install slurm-drmaa
+      shell: |
+        ./configure && make && make install
+      args:
+        chdir: /tmp/slurm-drmaa-{{ slurm_drmaa_version }}
+      when: drmaa
+
     # Generate Pulsar configuration files (only if venv was just created or config doesn't exist)
     - name: Create Pulsar configuration files
       command:
@@ -123,6 +168,18 @@
         owner: "{{ pulsar_user }}"
         group: "{{ pulsar_group }}"
         mode: '0644'
+
+    # Ensure DRMAA_LIBRARY_PATH is set in local_env.sh using regex
+    - name: Ensure DRMAA_LIBRARY_PATH is set
+      lineinfile:
+        path: "{{ pulsar_install_dir }}/local_env.sh"
+        regexp: '^export DRMAA_LIBRARY_PATH='
+        line: "export DRMAA_LIBRARY_PATH=/usr/local/lib/libdrmaa.so"
+        create: true
+        owner: "{{ pulsar_user }}"
+        group: "{{ pulsar_group }}"
+        mode: '0644'
+      when: drmaa
 
     # Deploy systemd service file for Pulsar
     - name: Create Pulsar service file

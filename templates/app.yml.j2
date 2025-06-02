@@ -4,7 +4,14 @@ message_queue_url: "{{ pulsar_amqp_url }}"
 conda_auto_init: false
 conda_auto_install: false
 
+{% if not drmaa %}
 managers:
   _default_:
     type: queued_python
     num_concurrent_jobs: 1
+{% endif %}
+
+managers:
+  _default_:
+    type: queued_drmaa
+    native_specification: "--partition=development-slurm"
